@@ -14,7 +14,7 @@ class TensorFlowConan(ConanFile):
     settings = "os", "arch", "compiler", "build_type"
     options = {"shared": [True, False], "fPIC": [True, False]}
     default_options = {"shared": False, "fPIC": True}
-    _build_subfolder = "build_subfolder"
+    short_paths = True
 
     @property
     def _source_subfolder(self):
@@ -63,12 +63,13 @@ class TensorFlowConan(ConanFile):
                 target = {"Macos": "//tensorflow:libtensorflow_cc.dylib",
                           "Linux": "//tensorflow:libtensorflow_cc.so",
                           "Windows": "//tensorflow:libtensorflow_cc.dll"}.get(str(self.settings.os))
-                command_line = " ".join(["bazel build",
-                                    "--config=opt",
-                                    "--config=monolithic",
-                                    "--config=noaws",
-                                    "--define=no_tensorflow_py_deps=true "
-                                    ])
+                command_args = [ "--config=opt",
+                                 "--config=monolithic",
+                                 "--config=noaws",
+                                 "--define=no_tensorflow_py_deps=true"
+                                 ]
+
+                command_line = "bazel build" + " ".join(command_args) + " "
                 self.run(command_line + "%s --verbose_failures" % target)
                 self.run(command_line + "%s --verbose_failures" % "//tensorflow:install_headers")
 
