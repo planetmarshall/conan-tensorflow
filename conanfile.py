@@ -35,11 +35,19 @@ class TensorFlowConan(ConanFile):
         extracted_dir = self.name + "-" + self.version
         os.rename(extracted_dir, self._source_subfolder)
 
+    @property
+    def _compiler_exe(self):
+        if self.settings.compiler == "Visual Studio":
+            return tools.which("cl")
+        return tools.which(str(self.settings.compiler))
+
     def build(self):
         with tools.chdir(self._source_subfolder):
             env_build = dict()
             env_build["PYTHON_BIN_PATH"] = sys.executable
             env_build["USE_DEFAULT_PYTHON_LIB_PATH"] = "1"
+            env_build["HOST_C_COMPILER"] = self._compiler_exe
+            env_build["HOST_CXX_COMPILER"] = self._compiler_exe
             env_build["TF_ENABLE_XLA"] = '0'
             env_build["TF_NEED_OPENCL_SYCL"] = '0'
             env_build["TF_NEED_ROCM"] = '0'
@@ -55,10 +63,14 @@ class TensorFlowConan(ConanFile):
                 target = {"Macos": "//tensorflow:libtensorflow_cc.dylib",
                           "Linux": "//tensorflow:libtensorflow_cc.so",
                           "Windows": "//tensorflow:libtensorflow_cc.dll"}.get(str(self.settings.os))
-                self.run("bazel build --config=opt --config=monolithic --define=no_tensorflow_py_deps=true "
-                         "%s --verbose_failures" % target)
-                self.run("bazel build --config=opt --define=no_tensorflow_py_deps=true "
-                         "%s --verbose_failures" % "//tensorflow:install_headers")
+                command_line = " ".join(["bazel build",
+                                    "--config=opt",
+                                    "--config=monolithic",
+                                    "--config=noaws",
+                                    "--define=no_tensorflow_py_deps=true "
+                                    ])
+                self.run(command_line + "%s --verbose_failures" % target)
+                self.run(command_line + "%s --verbose_failures" % "//tensorflow:install_headers")
 
     def package(self):
         self.copy(pattern="LICENSE", dst="licenses", src=self._source_subfolder)
