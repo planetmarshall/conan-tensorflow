@@ -5,7 +5,7 @@ import sys
 
 class TensorFlowConan(ConanFile):
     name = "tensorflow"
-    version = "1.14.0"
+    version = "2.2.0"
     description = "https://www.tensorflow.org/"
     topics = ("conan", "tensorflow", "ML")
     url = "https://github.com/bincrafters/conan-tensorflow"
@@ -14,12 +14,15 @@ class TensorFlowConan(ConanFile):
     settings = "os", "arch", "compiler", "build_type"
     options = {"shared": [True, False], "fPIC": [True, False]}
     default_options = {"shared": False, "fPIC": True}
-    _source_subfolder = "source_subfolder"
     _build_subfolder = "build_subfolder"
+
+    @property
+    def _source_subfolder(self):
+        return os.path.join(self.source_folder, "source_subfolder")
 
     def build_requirements(self):
         if not tools.which("bazel"):
-            self.build_requires("bazel_installer/0.25.2@bincrafters/stable")
+            self.build_requires("bazel_installer/0.27.1@bincrafters/stable")
 
     def config_options(self):
         if self.settings.os == 'Windows':
@@ -28,7 +31,7 @@ class TensorFlowConan(ConanFile):
     def source(self):
         source_url = "https://github.com/tensorflow/tensorflow"
         tools.get("{0}/archive/v{1}.tar.gz".format(source_url, self.version),
-                  sha256="aa2a6a1daafa3af66807cfe0bc77bfe1144a9a53df9a96bab52e3e575b3047ed")
+            sha256="69cd836f87b8c53506c4f706f655d423270f5a563b76dc1cfa60fbc3184185a3")
         extracted_dir = self.name + "-" + self.version
         os.rename(extracted_dir, self._source_subfolder)
 
@@ -52,7 +55,7 @@ class TensorFlowConan(ConanFile):
                 target = {"Macos": "//tensorflow:libtensorflow_cc.dylib",
                           "Linux": "//tensorflow:libtensorflow_cc.so",
                           "Windows": "//tensorflow:libtensorflow_cc.dll"}.get(str(self.settings.os))
-                self.run("bazel build --config=opt --define=no_tensorflow_py_deps=true "
+                self.run("bazel build --config=opt --config=monolithic --define=no_tensorflow_py_deps=true "
                          "%s --verbose_failures" % target)
                 self.run("bazel build --config=opt --define=no_tensorflow_py_deps=true "
                          "%s --verbose_failures" % "//tensorflow:install_headers")
