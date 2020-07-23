@@ -39,6 +39,7 @@ class TensorFlowConan(ConanFile):
     def _compiler_exe(self):
         if self.settings.compiler == "Visual Studio":
             return tools.which("cl")
+
         return tools.which(str(self.settings.compiler))
 
     def build(self):
@@ -68,7 +69,7 @@ class TensorFlowConan(ConanFile):
                                  ]
 
                 command_line = "bazel build " + " ".join(command_args) + " "
-                self.run(command_line + "%s --verbose_failures" % target)
+                self.run(command_line + "%s --verbose_failures" % "//tensorflow:tensorflow_cc")
                 self.run(command_line + "%s --verbose_failures" % "//tensorflow:install_headers")
 
     def package(self):
