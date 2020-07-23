@@ -62,10 +62,9 @@ class TensorFlowConan(ConanFile):
                 self.run("bazel shutdown")
                 target = {"Macos": "//tensorflow:libtensorflow_cc.dylib",
                           "Linux": "//tensorflow:libtensorflow_cc.so",
-                          "Windows": "//tensorflow:libtensorflow_cc.dll"}.get(str(self.settings.os))
+                          "Windows": "//tensorflow:tensorflow_cc.dll"}.get(str(self.settings.os))
                 command_args = [ "--config=opt",
                                  "--config=monolithic",
-                                 "--config=noaws",
                                  "--define=no_tensorflow_py_deps=true"
                                  ]
 
