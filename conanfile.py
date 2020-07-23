@@ -14,6 +14,7 @@ class TensorFlowConan(ConanFile):
     settings = "os", "arch", "compiler", "build_type"
     options = {"shared": [True, False], "fPIC": [True, False]}
     default_options = {"shared": False, "fPIC": True}
+    exports = ["config.patch"]
     short_paths = True
 
     @property
@@ -34,6 +35,7 @@ class TensorFlowConan(ConanFile):
             sha256="69cd836f87b8c53506c4f706f655d423270f5a563b76dc1cfa60fbc3184185a3")
         extracted_dir = self.name + "-" + self.version
         os.rename(extracted_dir, self._source_subfolder)
+        tools.patch(patch_file="config.patch", base_path=self._source_subfolder)
 
     @property
     def _compiler_exe(self):
