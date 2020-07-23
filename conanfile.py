@@ -64,11 +64,10 @@ class TensorFlowConan(ConanFile):
                           "Linux": "//tensorflow:libtensorflow_cc.so",
                           "Windows": "//tensorflow:tensorflow_cc.dll"}.get(str(self.settings.os))
                 command_args = [ "--config=opt",
-                                 "--config=monolithic",
                                  "--define=no_tensorflow_py_deps=true"
                                  ]
 
-                command_line = "bazel build" + " ".join(command_args) + " "
+                command_line = "bazel build " + " ".join(command_args) + " "
                 self.run(command_line + "%s --verbose_failures" % target)
                 self.run(command_line + "%s --verbose_failures" % "//tensorflow:install_headers")
 
@@ -80,4 +79,4 @@ class TensorFlowConan(ConanFile):
         self.copy(pattern="*.dylib*", dst="lib", src=self._source_subfolder, keep_path=False, symlinks=True)
 
     def package_info(self):
-        self.cpp_info.libs = ["tensorflow"]
+        self.cpp_info.libs = tools.collect_libs(self)
