@@ -64,9 +64,9 @@ class TensorFlowConan(ConanFile):
         tf_args = []
         if self.settings.compiler == "clang":
             if self.settings.compiler.libcxx == "libc++":
-                tr_args.append("-stdlib=libc++")
+                tf_args.append("--cxxopt=-stdlib=libc++")
 
-        return ['--copt="{}"'.format(arg) for arg in tf_args]
+        return tf_args
 
     def build(self):
         with tools.chdir(self._source_subfolder):
@@ -87,15 +87,14 @@ class TensorFlowConan(ConanFile):
             self.output.info(env_build)
             with tools.environment_append(env_build):
                 self.run("python configure.py" if tools.os_info.is_windows else "./configure")
-                command_args = [ "--config=opt",
-                                 "--define=no_tensorflow_py_deps=true"
-                                 ]
+                command_args = ["--config=opt"]
                 command_args += self._tf_compiler_args
 
                 command_line = "bazel build " + " ".join(command_args) + " "
                 self.output.info("Running tensorflow build: ")
                 self.output.info(command_line)
                 self.run(command_line + "%s --verbose_failures" % "//tensorflow:tensorflow_cc")
+                self.run(command_line + "%s --verbose_failures" % "//tensorflow:tensorflow_cc_dll_import_lib")
                 self.run(command_line + "%s --verbose_failures" % "//tensorflow:install_headers")
                 self.run("bazel shutdown")
 
