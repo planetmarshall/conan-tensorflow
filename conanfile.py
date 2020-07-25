@@ -92,7 +92,7 @@ class TensorFlowConan(ConanFile):
                                  ]
                 command_args += self._tf_compiler_args
 
-                command_line = 'bazel build " + " ".join(command_args) + " "
+                command_line = "bazel build " + " ".join(command_args) + " "
                 self.output.info("Running tensorflow build: ")
                 self.output.info(command_line)
                 self.run(command_line + "%s --verbose_failures" % "//tensorflow:tensorflow_cc")
