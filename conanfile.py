@@ -63,9 +63,9 @@ class TensorFlowConan(ConanFile):
     @property
     def _tf_compiler_args(self):
         tf_args = []
+        tf_args.append("-s") # diagnostic
         if self.settings.compiler == "clang":
             tf_args.append("--cxxopt=-xc++")
-            tf_args.append("-s") # diagnostic
             if self.settings.compiler.libcxx == "libc++":
                 tf_args.append("--copt=-stdlib=libc++")
 
