@@ -5,7 +5,7 @@ import sys
 
 class TensorFlowConan(ConanFile):
     name = "tensorflow"
-    version = "2.2.0"
+    version = "2.3.0-rc2"
     description = "https://www.tensorflow.org/"
     topics = ("conan", "tensorflow", "ML")
     url = "https://github.com/bincrafters/conan-tensorflow"
@@ -14,15 +14,10 @@ class TensorFlowConan(ConanFile):
     settings = "os", "arch", "compiler", "build_type"
     options = {"shared": [True, False], "fPIC": [True, False]}
     default_options = {"shared": False, "fPIC": True}
-    exports = ["config.patch"]
 
     @property
     def _source_subfolder(self):
         return os.path.join(self.source_folder, "source_subfolder")
-
-    def build_requirements(self):
-        if not tools.which("bazel"):
-            self.build_requires("bazel_installer/0.27.1@bincrafters/stable")
 
     def config_options(self):
         if self.settings.os == 'Windows':
@@ -30,11 +25,9 @@ class TensorFlowConan(ConanFile):
 
     def source(self):
         source_url = "https://github.com/tensorflow/tensorflow"
-        tools.get("{0}/archive/v{1}.tar.gz".format(source_url, self.version),
-            sha256="69cd836f87b8c53506c4f706f655d423270f5a563b76dc1cfa60fbc3184185a3")
+        tools.get("{0}/archive/v{1}.tar.gz".format(source_url, self.version))
         extracted_dir = self.name + "-" + self.version
         os.rename(extracted_dir, self._source_subfolder)
-        tools.patch(patch_file="config.patch", base_path=self._source_subfolder)
 
     @property 
     def _latest_vc_compiler_version(self):
