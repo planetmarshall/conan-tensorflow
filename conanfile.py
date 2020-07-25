@@ -15,7 +15,6 @@ class TensorFlowConan(ConanFile):
     options = {"shared": [True, False], "fPIC": [True, False]}
     default_options = {"shared": False, "fPIC": True}
     exports = ["config.patch"]
-    short_paths = True
 
     @property
     def _source_subfolder(self):
@@ -64,7 +63,7 @@ class TensorFlowConan(ConanFile):
     def _tf_compiler_args(self):
         tf_args = []
         if self.settings.compiler == "clang":
-            if self.settings.libcxx == "libc++":
+            if self.settings.compiler.libcxx == "libc++":
                 tr_args.append("-stdlib=libc++")
 
         return ['--copt="{}"'.format(arg) for arg in tf_args]
@@ -93,7 +92,7 @@ class TensorFlowConan(ConanFile):
                                  ]
                 command_args += self._tf_compiler_args
 
-                command_line = 'bazel --output_base="{}"'.format(self.build_folder) + " build " + " ".join(command_args) + " "
+                command_line = 'bazel build " + " ".join(command_args) + " "
                 self.output.info("Running tensorflow build: ")
                 self.output.info(command_line)
                 self.run(command_line + "%s --verbose_failures" % "//tensorflow:tensorflow_cc")
