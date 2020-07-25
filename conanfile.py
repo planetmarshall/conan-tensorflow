@@ -37,42 +37,68 @@ class TensorFlowConan(ConanFile):
         os.rename(extracted_dir, self._source_subfolder)
         tools.patch(patch_file="config.patch", base_path=self._source_subfolder)
 
-    @property
-    def _compiler_exe(self):
-        if self.settings.compiler == "Visual Studio":
-            return tools.which("cl")
+    @property 
+    def _latest_vc_compiler_version(self):
+        if self.settings.compiler != "Visual Studio":
+            return "0"
+        vs = tools.vswhere(latest=True)
+        vs_version = tools.Version(vs[0]["installationVersion"])
+        return "{}.{}".format(vs_version.major, vs_version.minor)
 
-        return tools.which(str(self.settings.compiler))
+    @property
+    def _tf_compiler_vars(self):
+        tf_vars = {}
+        if self.settings.compiler == "clang":
+            tf_vars["HOST_C_COMPILER"] = tools.which("clang")
+            tf_vars["HOST_CXX_COMPILER"] = tools.which("clang++")
+            tf_vars["CC_OPT_FLAGS"] = "-march=native"
+
+        elif self.settings.compiler == "Visual Studio":   
+            tf_vars["TF_VC_VERSION"] = self._latest_vc_compiler_version
+            tf_vars["TF_OVERRIDE_EIGEN_STRONG_INLINE"] = "1"
+            tf_vars["CC_OPT_FLAGS"] = "/arch:AVX"
+
+        return tf_vars
+
+    @property
+    def _tf_compiler_args(self):
+        tf_args = []
+        if self.settings.compiler == "clang":
+            if self.settings.libcxx == "libc++":
+                tr_args.append("-stdlib=libc++")
+
+        return ['--copt="{}"'.format(arg) for arg in tf_args]
 
     def build(self):
         with tools.chdir(self._source_subfolder):
-            env_build = dict()
-            env_build["PYTHON_BIN_PATH"] = sys.executable
-            env_build["USE_DEFAULT_PYTHON_LIB_PATH"] = "1"
-            env_build["HOST_C_COMPILER"] = self._compiler_exe
-            env_build["HOST_CXX_COMPILER"] = self._compiler_exe
-            env_build["TF_ENABLE_XLA"] = '0'
-            env_build["TF_NEED_OPENCL_SYCL"] = '0'
-            env_build["TF_NEED_ROCM"] = '0'
-            env_build["TF_NEED_CUDA"] = '0'
-            env_build["TF_NEED_MPI"] = '0'
-            env_build["TF_DOWNLOAD_CLANG"] = '0'
-            env_build["TF_SET_ANDROID_WORKSPACE"] = "0"
-            env_build["CC_OPT_FLAGS"] = "/arch:AVX" if self.settings.compiler == "Visual Studio" else "-march=native"
-            env_build["TF_CONFIGURE_IOS"] = "1" if self.settings.os == "iOS" else "0"
+            env_build = {
+                "PYTHON_BIN_PATH": sys.executable,
+                "USE_DEFAULT_PYTHON_LIB_PATH": "1",
+                "TF_ENABLE_XLA": '0',
+                "TF_NEED_OPENCL_SYCL": '0',
+                "TF_NEED_ROCM": '0',
+                "TF_NEED_CUDA": '0',
+                "TF_NEED_MPI": '0',
+                "TF_DOWNLOAD_CLANG": '0',
+                "TF_SET_ANDROID_WORKSPACE": "0",
+                "TF_CONFIGURE_IOS": "1" if self.settings.os == "iOS" else "0"
+            }
+            env_build.update(self._tf_compiler_vars)
+            self.output.info("Tensorflow env: ")
+            self.output.info(env_build)
             with tools.environment_append(env_build):
                 self.run("python configure.py" if tools.os_info.is_windows else "./configure")
-                self.run("bazel shutdown")
-                target = {"Macos": "//tensorflow:libtensorflow_cc.dylib",
-                          "Linux": "//tensorflow:libtensorflow_cc.so",
-                          "Windows": "//tensorflow:tensorflow_cc.dll"}.get(str(self.settings.os))
                 command_args = [ "--config=opt",
                                  "--define=no_tensorflow_py_deps=true"
                                  ]
+                command_args += self._tf_compiler_args
 
-                command_line = "bazel build " + " ".join(command_args) + " "
+                command_line = 'bazel --output_base="{}"'.format(self.build_folder) + " build " + " ".join(command_args) + " "
+                self.output.info("Running tensorflow build: ")
+                self.output.info(command_line)
                 self.run(command_line + "%s --verbose_failures" % "//tensorflow:tensorflow_cc")
                 self.run(command_line + "%s --verbose_failures" % "//tensorflow:install_headers")
+                self.run("bazel shutdown")
 
     def package(self):
         self.copy(pattern="LICENSE", dst="licenses", src=self._source_subfolder)
