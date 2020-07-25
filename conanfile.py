@@ -41,6 +41,7 @@ class TensorFlowConan(ConanFile):
         if self.settings.compiler != "Visual Studio":
             return "0"
         vs = tools.vswhere(latest=True)
+        self.output.info("VS compiler version: {}".format(vs[0]["installationVersion"]))
         vs_version = tools.Version(vs[0]["installationVersion"])
         return "{}.{}".format(vs_version.major, vs_version.minor)
 
@@ -48,12 +49,12 @@ class TensorFlowConan(ConanFile):
     def _tf_compiler_vars(self):
         tf_vars = {}
         if self.settings.compiler == "clang":
-            tf_vars["HOST_C_COMPILER"] = tools.which("clang")
-            tf_vars["HOST_CXX_COMPILER"] = tools.which("clang++")
+            tf_vars["CC"] = tools.which("clang")
             tf_vars["CC_OPT_FLAGS"] = "-march=native"
 
         elif self.settings.compiler == "Visual Studio":   
-            tf_vars["TF_VC_VERSION"] = self._latest_vc_compiler_version
+            # this doesn't appear to be reliable. Works locally but not on CI
+            # tf_vars["TF_VC_VERSION"] = self._latest_vc_compiler_version
             tf_vars["TF_OVERRIDE_EIGEN_STRONG_INLINE"] = "1"
             tf_vars["CC_OPT_FLAGS"] = "/arch:AVX"
 
@@ -63,8 +64,10 @@ class TensorFlowConan(ConanFile):
     def _tf_compiler_args(self):
         tf_args = []
         if self.settings.compiler == "clang":
+            tf_args.append("--cxxopt=-xc++")
+            tf_args.append("-s") # diagnostic
             if self.settings.compiler.libcxx == "libc++":
-                tf_args.append("--cxxopt=-stdlib=libc++")
+                tf_args.append("--copt=-stdlib=libc++")
 
         return tf_args
 
